@@ -3,10 +3,12 @@ module Main where
 
 import LambdaType
 import Substitutions
-import Parser
 import Utils
+import Parser
+import ParserUtils
 import Prelude.Unicode
 import Data.Monoid.Unicode
+import System.IO
 import qualified Data.ByteString.Char8 as BS
 
 substIt ∷ (Λ, (VName, Λ)) → String
@@ -16,4 +18,5 @@ substIt (kuda, (v, chto)) = case substitute v chto kuda of
                                       BS.unpack (head $ notFreeFSVars chto v kuda)
 
 main ∷ IO ()
-main = readEx (pairM (expr, substExpr)) >>= putStrLn ∘ substIt
+main = fileIO "task3.in" "task3.out" $ \inp outp →
+       hReadEx inp (pairM (lexeme expr, substExpr)) >>= hPutStrLn outp ∘ substIt

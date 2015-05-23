@@ -1,0 +1,127 @@
+
+./dist/build/autogen/Paths_TTHomework.hs,970
+module Paths_TTHomework Paths_TTHomework0,1
+catchIO catchIO11,12
+catchIO catchIO12,13
+version version15,16
+version version16,17
+bindir, libdir, datadir, libexecdir, sysconfdir sysconfdir17,18
+bindir, libdir, datadir, libexecdir,libexecdir17,18
+bindir, libdir, datadir,datadir17,18
+bindir, libdir,libdir17,18
+bindir,bindir17,18
+bindir bindir19,20
+libdir libdir20,21
+datadir datadir21,22
+libexecdir libexecdir22,23
+sysconfdir sysconfdir23,24
+getBinDir, getLibDir, getDataDir, getLibexecDir, getSysconfDir getSysconfDir25,26
+getBinDir, getLibDir, getDataDir, getLibexecDir,getLibexecDir25,26
+getBinDir, getLibDir, getDataDir,getDataDir25,26
+getBinDir, getLibDir,getLibDir25,26
+getBinDir,getBinDir25,26
+getBinDir getBinDir26,27
+getLibDir getLibDir27,28
+getDataDir getDataDir28,29
+getLibexecDir getLibexecDir29,30
+getSysconfDir getSysconfDir30,31
+getDataFileName getDataFileName32,33
+getDataFileName getDataFileName33,34
+
+./src/Eval.hs,493
+module Eval Eval1,2
+type Subst Subst9,10
+type Mapping Mapping10,11
+type RevMapping RevMapping11,12
+leaf leaf14,15
+incv incv19,20
+modfree modfree26,27
+decx decx31,32
+incx incx32,33
+snoc snoc35,36
+eval eval38,39
+run run45,46
+makeFreeMap makeFreeMap48,49
+upd upd51,52
+revUpd revUpd54,55
+mapToDb mapToDb57,58
+toDB toDB62,63
+alphasWithTicks alphasWithTicks64,65
+varNotIn varNotIn68,69
+mapFromDb mapFromDb71,72
+makeFrees makeFrees78,79
+fromDB fromDB86,87
+
+./src/LambdaType.hs,290
+module LambdaType LambdaType1,2
+type VName VName6,7
+data Î Î8,9
+data Î = Var Var8,9
+       | Î Î9,10
+       | Î Î10,11
+type N N12,13
+data Îdb Îdb13,14
+data Îdb = DVar DVar13,14
+            | Îd Îd14,15
+            | Îdb Îdb15,16
+instance instance17,18
+
+./src/Main1.hs,87
+module Main Main1,2
+showVerbose showVerbose13,14
+main main17,18
+main main18,19
+
+./src/Main2.hs,39
+module Main Main1,2
+main main10,11
+
+./src/Main3.hs,62
+module Main Main1,2
+substIt substIt12,13
+main main18,19
+
+./src/Parser.hs,272
+module Parser Parser1,2
+spaces1 spaces111,12
+lexeme lexeme14,15
+parens parens15,16
+varname varname18,19
+expr expr25,26
+lambda lambda27,28
+app app34,35
+atom atom39,40
+var var41,42
+apply apply44,45
+parseExpr parseExpr50,51
+substExpr substExpr53,54
+
+./src/ParserUtils.hs,101
+module ParserUtils ParserUtils1,2
+hReadEx hReadEx10,11
+readEx readEx12,13
+readEx readEx13,14
+
+./src/Setup.hs,15
+main main1,2
+
+./src/Substitutions.hs,203
+module Substitutions Substitutions1,2
+free free9,10
+boundedNear boundedNear14,15
+notFreeFSVars notFreeFSVars20,21
+freeForSubst freeForSubst23,24
+subst subst26,27
+substitute substitute35,36
+
+./src/Utils.hs,256
+module Utils Utils1,2
+class InputID InputID6,7
+class InputID InputID6,7
+class OutputID OutputID9,10
+class OutputID OutputID9,10
+instance instance12,13
+fromRight fromRight29,30
+pairM pairM33,34
+    | a `comp`comp40,41
+fileIO fileIO44,45

@@ -1,7 +1,6 @@
 {-# LANGUAGE UnicodeSyntax, OverloadedStrings #-}
 module Main where
 
-import System.IO
 import qualified Data.ByteString.Char8 as BS
 import Prelude.Unicode
 import Data.Monoid.Unicode

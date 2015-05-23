@@ -6,6 +6,7 @@ import Substitutions
 import Prelude.Unicode
 import Data.List.Unicode
 import Data.Maybe
+import qualified Data.ByteString.Char8 as BS
 
 type Subst = N → Λdb
 type Mapping = VName → N
@@ -23,7 +24,7 @@ incv depth sub n = case sub n of
   (a :@@ b) → incv depth (const a) n :@@ incv depth (const b) n
 
 -- Modify all the free identificators
-modfree ∷ (N → N) → Integer → Λd6b → Λdb
+modfree ∷ (N → N) → Integer → Λdb → Λdb
 modfree f depth (DVar n)= if n ≥ depth then DVar (f n) else DVar n
 modfree f depth (a :@@ b) = modfree f depth a :@@ modfree f depth b
 modfree f depth (Λd e) = Λd $ modfree f (depth + 1) e
@@ -62,7 +63,7 @@ mapToDb (a :@ b) m = mapToDb a m :@@ mapToDb b m
 toDB ∷ Λ → Λdb
 toDB e = mapToDb e $ makeFreeMap e
 
-alphasWithTicks = concat $ iterate (map (++ "\'")) alphas
+alphasWithTicks = map BS.pack $ concat $ iterate (map (++ "\'")) alphas
   where alphas = map (:[]) ['a'..'z']
 
 varNotIn ∷ [VName] → VName
@@ -86,3 +87,6 @@ makeFrees de = (map snd initMap, \n → fromJust $ lookup n initMap)
 fromDB ∷ Λdb → Λ
 fromDB de = mapFromDb vn de im
     where (vn, im) = makeFrees de
+
+normalizeTerm ∷ Λ → Λ
+normalizeTerm = fromDB ∘ run ∘ toDB
