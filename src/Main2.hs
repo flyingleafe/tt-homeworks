@@ -6,6 +6,7 @@ import qualified Data.ByteString.Char8 as BS
 import Utils
 import Parser
 import ParserUtils
+import LambdaType
 import Substitutions
 
 main ∷ IO ()

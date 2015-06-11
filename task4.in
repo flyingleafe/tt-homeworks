@@ -1,1 +1,1 @@
-(\a.\b.\c. a b c) (\a.\b.a) x y
+(\x.\y.x) y ((\x.x x) (\x.x x))

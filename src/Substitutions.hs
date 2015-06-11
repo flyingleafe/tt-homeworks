@@ -6,11 +6,6 @@ import LambdaType
 import Data.List
 import Data.List.Unicode
 
-free ∷ Λ → [VName]
-free (Var v) = [v]
-free (Λ v e) = filter (not ∘ (≡ v)) $ free e
-free (a :@ b) = free a ∪ free b
-
 boundedNear ∷ VName → Λ → [VName]
 boundedNear v = sort ∘ nub ∘ gbn []
     where gbn bnd (Var v') = if v ≡ v' then bnd else []
@@ -21,7 +16,7 @@ notFreeFSVars ∷ Λ → VName → Λ → [VName]
 notFreeFSVars chto v kuda = free chto ∩ boundedNear v kuda
 
 freeForSubst ∷ Λ → VName → Λ → Bool
-freeForSubst = ((.).(.).(.)) (≡ []) notFreeFSVars
+freeForSubst chto v kuda = notFreeFSVars chto v kuda ≡ []
 
 subst ∷ VName → Λ → Λ → Λ
 subst v e (Var v')

@@ -2,91 +2,58 @@
 module Eval where
 
 import LambdaType
-import Substitutions
 import Prelude.Unicode
-import Data.List.Unicode
 import Data.Maybe
-import qualified Data.ByteString.Char8 as BS
+import Control.Monad.State.Lazy
+import qualified Data.Map as M
 
-type Subst = N → Λdb
-type Mapping = VName → N
-type RevMapping = N → VName
+type Memo = M.Map Λdb Λdb
+type Evaluation = State Memo
 
-leaf ∷ Subst
-leaf n = DVar n
+getMem ∷ Λdb → Evaluation (Maybe Λdb)
+getMem l = gets (M.lookup l)
 
--- Modify the substitution: increment all the
--- free identificators in result
-incv ∷ Integer → Subst → Subst
-incv depth sub n = case sub n of
-  (DVar n') → if n' ≥ depth then DVar (n' + 1) else DVar n'
-  (Λd e) → Λd $ incv (depth + 1) (const e) n
-  (a :@@ b) → incv depth (const a) n :@@ incv depth (const b) n
+putMem ∷ Λdb → Λdb → Evaluation ()
+putMem k v = modify (M.insert k v)
 
--- Modify all the free identificators
-modfree ∷ (N → N) → Integer → Λdb → Λdb
-modfree f depth (DVar n)= if n ≥ depth then DVar (f n) else DVar n
-modfree f depth (a :@@ b) = modfree f depth a :@@ modfree f depth b
-modfree f depth (Λd e) = Λd $ modfree f (depth + 1) e
+eval ∷ Λdb → Evaluation Λdb
+eval l = liftM2 fromMaybe evalAndPut (getMem l)
+    where evalAndPut = do
+            e ← eval' l
+            putMem l e
+            return e
 
-decx, incx ∷ Integer → Λdb → Λdb
-decx = modfree (flip (-) 1)
-incx = modfree (+ 1)
+eval' ∷ Λdb → Evaluation Λdb
+eval' ((Λd a) :@@ b) = eval $ substDB 0 (decFrees a) b
+eval' v@(DVar _) = return v
+eval' (a :@@ b) = do
+  a' ← eval a
+  case a' of
+    (Λd _) → eval $ a' :@@ b
+    _ → do
+      b' ← eval b
+      return $ a' :@@ b'
+eval' (Λd e) = eval e >>= return ∘ Λd
 
-snoc ∷ Subst → N → Λdb → Subst
-snoc c n e n' = if n' == n then e else incv 0 c $ n' - 1
+modFrees ∷ (N → N) → Λdb → Λdb
+modFrees f = modfr 0
+    where modfr depth (DVar n) = if n ≤ depth then DVar n else DVar (f n)
+          modfr depth (a :@@ b) = modfr depth a :@@ modfr depth b
+          modfr depth (Λd e) = Λd $ modfr (depth + 1) e
 
-eval ∷ Λdb → Subst → Λdb
-eval (DVar v) ss = ss v
-eval (Λd a) ss = Λd $ eval a $ snoc ss 0 $ DVar 0
-eval (a :@@ b) ss = case (eval a ss, eval b ss) of
-                      (DVar v, e)    → DVar v :@@ e
-                      (Λd a', e)     → decx 1 $ eval a' $ snoc ss 0 $ incx 1 e
-                      (a' :@@ b', e) → (a' :@@ b') :@@ e
+incFrees, decFrees ∷ Λdb → Λdb
+incFrees = modFrees (+1)
+decFrees = modFrees (\n → n - 1)
 
-run e = eval e leaf
+substDB ∷ N → Λdb → Λdb → Λdb
+substDB n (DVar m) e = if n ≡ m then e else DVar m
+substDB n (a :@@ b) e = substDB n a e :@@ substDB n b e
+substDB n (Λd a) e = Λd $ substDB (n + 1) a $ incFrees e
 
-makeFreeMap ∷ Λ → Mapping
-makeFreeMap e v = fromJust $ lookup v (zip (free e) [0, 1..])
+normalizeDB ∷ Λdb → Λdb
+normalizeDB l = fst $ runState (eval l) M.empty
 
-upd ∷ Mapping → VName → N → Mapping
-upd m v n v' = if v == v' then n else m v' + 1
-
-revUpd ∷ RevMapping → N → VName → RevMapping
-revUpd m n v n' = if n ≡ n' then v else m (n' - 1)
-
-mapToDb ∷ Λ → Mapping → Λdb
-mapToDb (Var v) m = DVar $ m v
-mapToDb (Λ v e) m = Λd $ mapToDb e $ upd m v 0
-mapToDb (a :@ b) m = mapToDb a m :@@ mapToDb b m
-
-toDB ∷ Λ → Λdb
-toDB e = mapToDb e $ makeFreeMap e
-
-alphasWithTicks = map BS.pack $ concat $ iterate (map (++ "\'")) alphas
-  where alphas = map (:[]) ['a'..'z']
-
-varNotIn ∷ [VName] → VName
-varNotIn vs = head $ filter (not ∘ (∈ vs)) $ alphasWithTicks
-
-mapFromDb ∷ [VName] → Λdb → RevMapping → Λ
-mapFromDb _  (DVar n) m  = Var $ m n
-mapFromDb vs (Λd e) m    = Λ nv $ mapFromDb (nv:vs) e
-                           $ revUpd m 0 nv
-    where nv = varNotIn vs
-mapFromDb vs (a :@@ b) m = mapFromDb vs a m :@ mapFromDb vs b m
-
-makeFrees ∷ Λdb → ([VName], RevMapping)
-makeFrees de = (map snd initMap, \n → fromJust $ lookup n initMap)
-    where initMap = zip (freeNums 0 de) alphasWithTicks
-          freeNums depth (DVar n) = if n' ≥ 0 then [n'] else []
-              where n' = n - depth
-          freeNums depth (Λd e) = freeNums (depth + 1) e
-          freeNums depth (a :@@ b) = freeNums depth a ∪ freeNums depth b
-
-fromDB ∷ Λdb → Λ
-fromDB de = mapFromDb vn de im
-    where (vn, im) = makeFrees de
-
-normalizeTerm ∷ Λ → Λ
-normalizeTerm = fromDB ∘ run ∘ toDB
+normalize ∷ Λ → Λ
+normalize l = fromDB ctx $ normalizeDB ldb
+    where ctx = makeContext l
+          ldb = toDB ctx l
