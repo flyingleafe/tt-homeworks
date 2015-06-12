@@ -17,16 +17,17 @@ putMem ∷ Λdb → Λdb → Evaluation ()
 putMem k v = modify (M.insert k v)
 
 eval ∷ Λdb → Evaluation Λdb
+eval v@(DVar _) = return v
+eval (Λd e) = eval e >>= return ∘ Λd
 eval rdx@((Λd a) :@@ b) = do
     e ← getMem rdx
     case e of
       Nothing → do
-             e' ← eval $ decFrees $ substDB 0 a (incFrees b)
+             e' ← eval $ substRdx a b
              putMem rdx e'
              return e'
       Just e' → return e'
 
-eval v@(DVar _) = return v
 eval (a :@@ b) = do
   !a' ← eval a
   case a' of
@@ -34,7 +35,6 @@ eval (a :@@ b) = do
     _ → do
       !b' ← eval b
       return $ a' :@@ b'
-eval (Λd e) = eval e >>= return ∘ Λd
 
 modFrees ∷ (N → N) → Λdb → Λdb
 modFrees f = modfr 0
@@ -51,8 +51,18 @@ substDB n (DVar m) e = if n ≡ m then e else DVar m
 substDB n (a :@@ b) e = substDB n a e :@@ substDB n b e
 substDB n (Λd a) e = Λd $ substDB (n + 1) a $ incFrees e
 
+substRdx ∷ Λdb → Λdb → Λdb
+substRdx a b = decFrees $ substDB 0 a (incFrees b)
+
 normalizeDB ∷ Λdb → Λdb
-normalizeDB l = fst $ runState (eval l) M.empty
+-- normalizeDB l = fst $ runState (eval l) M.empty
+normalizeDB e@(DVar _) = e
+normalizeDB (Λd e) = Λd $ normalizeDB e
+normalizeDB ((Λd e) :@@ a) = normalizeDB $ substRdx e a
+normalizeDB (a :@@ b) =
+    case normalizeDB a of
+      (Λd e) → normalizeDB $ substRdx e b
+      e → e :@@ normalizeDB b
 
 normalize ∷ Λ → Λ
 normalize = operateDB $ \_ → normalizeDB

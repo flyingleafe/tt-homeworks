@@ -84,9 +84,5 @@ instance Show Λ where
 
 instance Show Λdb where
     show (DVar n) = show n
-    show l@(Λd e) = "\\" ++ show e
-    show a@(x :@@ y) = bracketed isLam x a ++ " " ++ bracketed isAppOrLam y a
-        where isLam (Λd _) _ = True
-              isLam _ _ = False
-              isAppOrLam (DVar _) _ = False
-              isAppOrLam _ _ = True
+    show (Λd e) = "(\\" ++ show e ++ ")"
+    show (x :@@ y) = "(" ++ show x ++ " " ++ show y ++ ")"

@@ -6,8 +6,9 @@ import Prelude.Unicode
 import Data.Monoid.Unicode
 import LambdaType
 import Data.Attoparsec.ByteString.Char8
-import qualified Data.ByteString as BS
 import Control.Applicative
+import Utils
+import qualified Data.ByteString.Char8 as BS
 
 spaces1 = takeWhile1 (≡ ' ')
 
@@ -58,3 +59,8 @@ substExpr = do
   e ← lexeme expr
   string "]"
   return (v, e)
+
+-- Test function --
+
+readl ∷ String → Λ
+readl = fromRight ∘ parseExpr ∘ BS.pack
