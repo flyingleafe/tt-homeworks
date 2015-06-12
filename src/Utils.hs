@@ -3,12 +3,6 @@ module Utils where
 
 import Prelude.Unicode
 import System.IO
-import System.IO.Unsafe
-import Data.String
-
--- mama ama criminal
-instance IsString Handle where
-    fromString = unsafePerformIO . flip openFile ReadWriteMode
 
 revlookup ∷ Eq b ⇒ b → [(a, b)] → Maybe a
 revlookup _ [] = Nothing
@@ -29,8 +23,10 @@ bracketed comp a e
     | a `comp` e = "(" ++ show a ++ ")"
     | otherwise = show a
 
-fileIO ∷ Handle → Handle → (Handle → Handle → IO c) → IO c
-fileIO inp outp action = do
+fileIO ∷ String → String → (Handle → Handle → IO c) → IO c
+fileIO inp' outp' action = do
+  inp ← openFile inp' ReadMode
+  outp ← openFile outp' WriteMode
   res ← action inp outp
   hClose inp
   hClose outp

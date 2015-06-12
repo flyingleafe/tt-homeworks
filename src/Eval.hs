@@ -1,11 +1,11 @@
-{-# LANGUAGE UnicodeSyntax #-}
+{-# LANGUAGE UnicodeSyntax, BangPatterns #-}
 module Eval where
 
 import LambdaType
 import Prelude.Unicode
-import Data.Maybe
 import Control.Monad.State.Lazy
 import qualified Data.Map as M
+import Debug.Trace
 
 type Memo = M.Map Λdb Λdb
 type Evaluation = State Memo
@@ -17,27 +17,28 @@ putMem ∷ Λdb → Λdb → Evaluation ()
 putMem k v = modify (M.insert k v)
 
 eval ∷ Λdb → Evaluation Λdb
-eval l = liftM2 fromMaybe evalAndPut (getMem l)
-    where evalAndPut = do
-            e ← eval' l
-            putMem l e
-            return e
+eval rdx@((Λd a) :@@ b) = do
+    e ← getMem rdx
+    case e of
+      Nothing → do
+             e' ← eval $ decFrees $ substDB 0 a (incFrees b)
+             putMem rdx e'
+             return e'
+      Just e' → return e'
 
-eval' ∷ Λdb → Evaluation Λdb
-eval' ((Λd a) :@@ b) = eval $ substDB 0 (decFrees a) b
-eval' v@(DVar _) = return v
-eval' (a :@@ b) = do
-  a' ← eval a
+eval v@(DVar _) = return v
+eval (a :@@ b) = do
+  !a' ← eval a
   case a' of
     (Λd _) → eval $ a' :@@ b
     _ → do
-      b' ← eval b
+      !b' ← eval b
       return $ a' :@@ b'
-eval' (Λd e) = eval e >>= return ∘ Λd
+eval (Λd e) = eval e >>= return ∘ Λd
 
 modFrees ∷ (N → N) → Λdb → Λdb
 modFrees f = modfr 0
-    where modfr depth (DVar n) = if n ≤ depth then DVar n else DVar (f n)
+    where modfr depth (DVar n) = if n < depth then DVar n else DVar (f n)
           modfr depth (a :@@ b) = modfr depth a :@@ modfr depth b
           modfr depth (Λd e) = Λd $ modfr (depth + 1) e
 
@@ -54,6 +55,4 @@ normalizeDB ∷ Λdb → Λdb
 normalizeDB l = fst $ runState (eval l) M.empty
 
 normalize ∷ Λ → Λ
-normalize l = fromDB ctx $ normalizeDB ldb
-    where ctx = makeContext l
-          ldb = toDB ctx l
+normalize = operateDB $ \_ → normalizeDB

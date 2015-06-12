@@ -9,10 +9,10 @@ import Data.Attoparsec.ByteString.Char8
 import qualified Data.ByteString as BS
 import Control.Applicative
 
-spaces1 = takeWhile1 isSpace
+spaces1 = takeWhile1 (≡ ' ')
 
 lexeme, parens ∷ Parser a → Parser a
-lexeme p = p <* skipSpace
+lexeme p = p <* skipWhile (≡ ' ')
 parens p = lexeme (string "(") *> lexeme p <* string ")"
 
 varname ∷ Parser BS.ByteString

@@ -66,22 +66,27 @@ makeContext ∷ Λ → DContext
 makeContext = enumerate ∘ free
     where enumerate ls = zip ls [1..]
 
+operateDB ∷ (DContext → Λdb → Λdb) → Λ → Λ
+operateDB f l = fromDB ctx $ f ctx lbd
+    where ctx = makeContext l
+          lbd = toDB ctx l
+
 -- Useful instances --
 
 instance Show Λ where
     show (Var v) = BS.unpack v
-    show l@(Λ v e) = "\\" ++ BS.unpack v ++ "." ++ bracketed (>) e l
-    show a@(x :@ y) = bracketed isLam x a ++ " " ++ bracketed isApp y a
+    show l@(Λ v e) = "\\" ++ BS.unpack v ++ "." ++ show e
+    show a@(x :@ y) = bracketed isLam x a ++ " " ++ bracketed isAppOrLam y a
         where isLam (Λ _ _) _ = True
               isLam _ _ = False
-              isApp (_ :@ _) _ = True
-              isApp _ _ = False
+              isAppOrLam (Var _) _ = False
+              isAppOrLam _ _ = True
 
 instance Show Λdb where
     show (DVar n) = show n
-    show l@(Λd e) = "\\" ++ bracketed (>) e l
-    show a@(x :@@ y) = bracketed isLam x a ++ " " ++ bracketed isApp y a
+    show l@(Λd e) = "\\" ++ show e
+    show a@(x :@@ y) = bracketed isLam x a ++ " " ++ bracketed isAppOrLam y a
         where isLam (Λd _) _ = True
               isLam _ _ = False
-              isApp (_ :@@ _) _ = True
-              isApp _ _ = False
+              isAppOrLam (DVar _) _ = False
+              isAppOrLam _ _ = True
