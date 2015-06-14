@@ -18,4 +18,4 @@ fix = \f. (\x. f (\y. x x y)) (\x. f (\y. x x y))
 facg = \fct. \n. (iszero n) c1 (mul n (fct (dec n)))
 dumb = \f. \n. (iszero n) omega n
 factorial = fix facg
-out = factorial (\s.\z.s (s (s (s (s (s (s z)))))))
+out = factorial c5
