@@ -5,6 +5,7 @@ module Equation ( EqName
                 , EqSystem
                 , Substitution
                 , unify
+                , substAll
                 , showEqs)
 where
 
@@ -27,8 +28,14 @@ unify ∷ EqSystem → Maybe Substitution
 unify [] = Just []
 unify ((a, b) : eqs) = do
   s ← unify eqs
-  neq ← unifyEq (apply s a, apply s b)
-  return $ neq ∪ s
+  neq ← unifyEq (substAll s a, substAll s b)
+  return $ finalize $ neq ∪ s
+
+finalize ∷ Substitution → Substitution
+finalize [] = []
+finalize (eq:eqs) = eq : finalize (substEverywhere eq eqs)
+    where substEverywhere p ls = map (substPairs p) ls
+          substPairs (x, f) (y, t) = (y, subst x f t)
 
 unifyEq ∷ Equation → Maybe Substitution
 unifyEq (EqVar a, EqVar b) =
@@ -49,8 +56,8 @@ occursIn ∷ EqName → EqTerm → Bool
 v `occursIn` (EqVar t) = v ≡ t
 v `occursIn` (EqFun _ ts) = any (occursIn v) ts
 
-apply ∷ Substitution → EqTerm → EqTerm
-apply s t = foldr (uncurry subst) t s
+substAll ∷ Substitution → EqTerm → EqTerm
+substAll s t = foldr (uncurry subst) t s
 
 subst ∷ EqName → EqTerm → EqTerm → EqTerm
 subst v t (EqVar v') = if v ≡ v' then t else EqVar v'

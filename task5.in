@@ -1,2 +1,2 @@
-f(x) = y
-f(x) = f(y)
+z = f(y, w)
+x = f(y, z)

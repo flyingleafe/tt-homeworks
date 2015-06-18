@@ -45,9 +45,9 @@ alphasWithTicks ∷ [VName]
 alphasWithTicks = map BS.pack $ concat $ iterate (map (++ "\'")) alphas
   where alphas = map (:[]) ['a'..'z']
 
-varNotIn ∷ DContext → VName
+varNotIn ∷ [VName] → VName
 varNotIn ctx = head $ filter (not ∘ inCtx) $ alphasWithTicks
-    where inCtx v = v ∈ map fst ctx
+    where inCtx v = v ∈ ctx
 
 toDB ∷ DContext → Λ → Λdb
 toDB ctx (Var v) = DVar $ getN v ctx
@@ -59,7 +59,7 @@ fromDB ∷ DContext → Λdb → Λ
 fromDB ctx (DVar n) = Var $ getV n ctx
 fromDB ctx (a :@@ b) = fromDB ctx a :@ fromDB ctx b
 fromDB ctx (Λd e) = Λ v $ fromDB newCtx e
-    where v = varNotIn ctx
+    where v = varNotIn $ map fst ctx
           newCtx = (v, 0) : increment ctx
 
 makeContext ∷ Λ → DContext
@@ -75,12 +75,12 @@ operateDB f l = fromDB ctx $ f ctx lbd
 
 instance Show Λ where
     show (Var v) = BS.unpack v
-    show l@(Λ v e) = "\\" ++ BS.unpack v ++ "." ++ show e
-    show a@(x :@ y) = bracketed isLam x a ++ " " ++ bracketed isAppOrLam y a
-        where isLam (Λ _ _) _ = True
-              isLam _ _ = False
-              isAppOrLam (Var _) _ = False
-              isAppOrLam _ _ = True
+    show (Λ v e) = "\\" ++ BS.unpack v ++ "." ++ show e
+    show (x :@ y) = bracketed isLam x ++ " " ++ bracketed isAppOrLam y
+        where isLam (Λ _ _) = True
+              isLam _ = False
+              isAppOrLam (Var _) = False
+              isAppOrLam _ = True
 
 instance Show Λdb where
     show (DVar n) = show n
