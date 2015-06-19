@@ -10,6 +10,10 @@ import Data.Attoparsec.ByteString.Char8
 import Control.Applicative
 import Utils
 import qualified Data.ByteString.Char8 as BS
+import Debug.Trace
+
+traceM ∷ Monad m ⇒ String → m ()
+traceM s = return $ trace s ()
 
 -- Lambdas --
 
@@ -17,15 +21,13 @@ spaces1 = takeWhile1 (≡ ' ')
 
 lexeme, parens ∷ Parser a → Parser a
 lexeme p = p <* skipWhile (≡ ' ')
-parens p = lexeme (string "(") *> lexeme p <* string ")"
+parens p = lexeme (char '(') *> lexeme p <* char ')'
 
 comma = lexeme $ char ','
 
-(.|.) ∷ (a → Bool) → (a → Bool) → a → Bool
-(f .|. g) a = f a ∨ g a
-
 almostVarname ∷ Parser BS.ByteString
-almostVarname = takeWhile $ isAlpha_ascii .|. isDigit .|. (≡ '\'')
+almostVarname = takeWhile $ isOk
+    where isOk c = isAlpha_ascii c ∨ isDigit c ∨ c ≡ '\''
 
 prependedVarname ∷ Parser Char → Parser BS.ByteString
 prependedVarname p = do
@@ -36,28 +38,25 @@ prependedVarname p = do
 varname ∷ Parser BS.ByteString
 varname = prependedVarname letter_ascii
 
-expr, app, lambda, atom, var ∷ Parser Λ
-expr = app `apply` lambda <|> lambda <|> app
+expr, lambda, atom, var ∷ Parser Λ
+expr = do
+  as ← atom `sepBy1` spaces1
+  return $ foldl1 (:@) as
 
 lambda = do
-  lexeme $ string "\\"
+  lexeme $ char '\\'
   v ← lexeme varname
-  lexeme $ string "."
+  lexeme $ char '.'
   e ← expr
   return $ Λ v e
 
-app = do
-  a ← lexeme atom
-  as ← atom `sepBy` spaces1
-  return $ foldl (:@) a as
+atom = var <|> lambda <|> parens expr
 
-atom = parens expr <|> var
-
-var = varname >>= return ∘ Var
+var = Var <$> varname
 
 apply ∷ Parser Λ → Parser Λ → Parser Λ
 apply p q = do
-  e1 ← lexeme p
+  e1 ← p <* spaces1
   e2 ← q
   return $ e1 :@ e2
 

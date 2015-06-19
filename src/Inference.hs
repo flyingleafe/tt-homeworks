@@ -40,9 +40,9 @@ lookupType x = do
 
 newVar ∷ (VName → BuildType → BuildType) → EqBuilding VName
 newVar f = do
-  (BT bv fv vs) ← get
+  vs ← gets typeVars
   let v = varNotIn vs
-  put (BT bv fv (v:vs))
+  modify $ \bt → bt { typeVars = v:vs }
   modify (f v)
   return v
 
@@ -50,15 +50,15 @@ justVar ∷ EqBuilding VName
 justVar = newVar $ const id
 
 newFreeVar ∷ VName → EqBuilding VName
-newFreeVar x = newVar $ \v (BT bv fv tv) → (BT bv ((x, v):fv) tv)
+newFreeVar x = newVar $ \v bt → bt { fvs = (x, v) : fvs bt }
 
 newBoundVar ∷ VName → EqBuilding VName
-newBoundVar x = newVar $ \v (BT bv fv tv) → (BT ((x, v):bv) fv tv)
+newBoundVar x = newVar $ \v bt → bt { bvs = (x, v) : bvs bt }
 
 removeBoundVar ∷ VName → EqBuilding ()
 removeBoundVar x = modify $ \bt →
                    let bv' = deleteBy ((≡) `on` fst) (x, "") $ bvs bt
-                   in (BT bv' (fvs bt) (typeVars bt))
+                   in bt { bvs = bv' }
 
 getTypeOf ∷ VName → EqBuilding VName
 getTypeOf x = do
@@ -88,7 +88,7 @@ filterTemp = filter ((≢ "") ∘ fst)
 
 buildSystem ∷ Λ → (EqPair, Context)
 buildSystem l = dropRedundant $ runState (buildSystemM l) (BT [] [] [])
-    where dropRedundant (r, (BT _ fv _)) = (r, filterTemp fv)
+    where dropRedundant (r, bt) = (r, filterTemp $ fvs bt)
 
 infer ∷ Λ → Maybe TypePair
 infer l = do

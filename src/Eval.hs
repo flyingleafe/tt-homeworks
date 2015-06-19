@@ -1,40 +1,8 @@
-{-# LANGUAGE UnicodeSyntax, BangPatterns #-}
+{-# LANGUAGE UnicodeSyntax, BangPatterns, TemplateHaskell #-}
 module Eval where
 
 import LambdaType
 import Prelude.Unicode
-import Control.Monad.State.Lazy
-import qualified Data.Map as M
-import Debug.Trace
-
-type Memo = M.Map Λdb Λdb
-type Evaluation = State Memo
-
-getMem ∷ Λdb → Evaluation (Maybe Λdb)
-getMem l = gets (M.lookup l)
-
-putMem ∷ Λdb → Λdb → Evaluation ()
-putMem k v = modify (M.insert k v)
-
-eval ∷ Λdb → Evaluation Λdb
-eval v@(DVar _) = return v
-eval (Λd e) = eval e >>= return ∘ Λd
-eval rdx@((Λd a) :@@ b) = do
-    e ← getMem rdx
-    case e of
-      Nothing → do
-             e' ← eval $ substRdx a b
-             putMem rdx e'
-             return e'
-      Just e' → return e'
-
-eval (a :@@ b) = do
-  !a' ← eval a
-  case a' of
-    (Λd _) → eval $ a' :@@ b
-    _ → do
-      !b' ← eval b
-      return $ a' :@@ b'
 
 modFrees ∷ (N → N) → Λdb → Λdb
 modFrees f = modfr 0
@@ -54,15 +22,18 @@ substDB n (Λd a) e = Λd $ substDB (n + 1) a $ incFrees e
 substRdx ∷ Λdb → Λdb → Λdb
 substRdx a b = decFrees $ substDB 0 a (incFrees b)
 
+whnf ∷ Λdb → Λdb
+whnf ((Λd a) :@@ b) = whnf $ substRdx a b
+whnf (a :@@ b) = case whnf a of
+                   (Λd e) → whnf $ substRdx e b
+                   e → e :@@ b
+whnf l = l
+
 normalizeDB ∷ Λdb → Λdb
--- normalizeDB l = fst $ runState (eval l) M.empty
-normalizeDB e@(DVar _) = e
-normalizeDB (Λd e) = Λd $ normalizeDB e
-normalizeDB ((Λd e) :@@ a) = normalizeDB $ substRdx e a
-normalizeDB (a :@@ b) =
-    case normalizeDB a of
-      (Λd e) → normalizeDB $ substRdx e b
-      e → e :@@ normalizeDB b
+normalizeDB l = case whnf l of
+                  (Λd e) → Λd $ normalizeDB e
+                  (a :@@ b) → normalizeDB a :@@ normalizeDB b
+                  var → var
 
 normalize ∷ Λ → Λ
 normalize = operateDB $ \_ → normalizeDB
